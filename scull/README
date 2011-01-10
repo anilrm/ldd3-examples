@@ -1,0 +1,29 @@
+This example has tested under the environment:
+
+	OS: Ubuntu 10.10 (Maverick Meerkat)
+	Kernel: 2.6.35
+
+
+
+How to use scull
+
+1. Make kernel module scull.ko
+
+	$ make
+
+
+2. Insert scull.ko & make device nodes
+
+	$ sudo ./scull_load.sh
+
+
+3. Test scull.ko
+
+	$ ls > /dev/scull
+	$ cat /dev/scull
+	...
+
+
+4. Remove scull.ko & remove device files
+
+	$ sudo ./scull_unload.sh

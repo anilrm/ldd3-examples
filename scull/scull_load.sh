@@ -1,8 +1,10 @@
 #!/bin/sh
-# $Id: scull_load,v 1.4 2004/11/03 06:19:49 rubini Exp $
+# $Id: scull_load, v1.4 2004/11/03 06:19:49 rubini Exp $
 module="scull"
 device="scull"
-mode="664"
+#mode="664"
+mode="666"
+
 
 # Group: since distributions do it differently, look for wheel or use staff
 if grep -q '^staff:' /etc/group; then
@@ -11,14 +13,17 @@ else
     group="wheel"
 fi
 
-# invoke insmod with all arguments we got
-# and use a pathname, as insmod doesn't look in . by default
+
+# Invoke insmod with all arguments we got and use a pathname, as insmod doesn't
+# look in . by default
 /sbin/insmod ./$module.ko $* || exit 1
 
-# retrieve major number
+
+# Retrieve major number
 major=$(awk "\$2==\"$module\" {print \$1}" /proc/devices)
 
-# Remove stale nodes and replace them, then give gid and perms
+
+# Remove stale nodes and replace them, then give gid and permissions.
 # Usually the script is shorter, it's scull that has several devices in it.
 
 rm -f /dev/${device}[0-3]
@@ -58,9 +63,3 @@ rm -f /dev/${device}priv
 mknod /dev/${device}priv  c $major 11
 chgrp $group /dev/${device}priv
 chmod $mode  /dev/${device}priv
-
-
-
-
-
-
