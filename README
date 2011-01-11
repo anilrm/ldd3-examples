@@ -1,0 +1,23 @@
+ldd3-examples README	v0.0.1	Jan 11, 2011
+
+
+ABOUT LDD3-EXAMPLES
+
+This project provides updated examples of the book ``Linux Device Drivers 3rd".
+Original examples of the book were written for kernel 2.6.10, and they are out
+of date a little because of frequent kernel changes.  When the project was
+created, latest kernel version is 2.6.37.  These examples work normally and
+have been tested under kernel 2.6.32 (Debian) and 2.6.35 (Ubuntu).
+
+WARNING: Examples have been tested are
+
+	* misc-modules
+	* scull
+
+
+ABOUT LINUX DEVICE DRIVERS 3RD
+
+Linux Devide Drivers 3rd was written by Jonathan Corbet, Alessandro Rubini,
+and Greg Kroah-Hartman.  You can get more information and download the book
+freely from http://lwn.net/Kernel/LDD3/.  You can also download the original
+examples from http://examples.oreilly.com/linuxdrive3/.
