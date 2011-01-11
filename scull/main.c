@@ -36,7 +36,6 @@
 /*
  * Our parameters which can be set at load time.
  */
-
 int scull_major =   SCULL_MAJOR;
 int scull_minor =   0;
 int scull_nr_devs = SCULL_NR_DEVS;	/* number of bare scull devices */
@@ -55,37 +54,12 @@ MODULE_LICENSE("Dual BSD/GPL");
 struct scull_dev *scull_devices;	/* allocated in scull_init_module */
 
 
-/*
- * Empty out the scull device; must be called with the device
- * semaphore held.
- */
-int scull_trim(struct scull_dev *dev)
-{
-	struct scull_qset *next, *dptr;
-	int qset = dev->qset;   /* "dev" is not-null */
-	int i;
 
-	for (dptr = dev->data; dptr; dptr = next) { /* all the list items */
-		if (dptr->data) {
-			for (i = 0; i < qset; i++)
-				kfree(dptr->data[i]);
-			kfree(dptr->data);
-			dptr->data = NULL;
-		}
-		next = dptr->next;
-		kfree(dptr);
-	}
-	dev->size = 0;
-	dev->quantum = scull_quantum;
-	dev->qset = scull_qset;
-	dev->data = NULL;
-	return 0;
-}
 #ifdef SCULL_DEBUG /* use proc only if debugging */
+
 /*
  * The proc filesystem: function to read and entry
  */
-
 int scull_read_procmem(char *buf, char **start, off_t offset,
                    int count, int *eof, void *data)
 {
@@ -204,7 +178,6 @@ static struct file_operations scull_proc_ops = {
 /*
  * Actually create (and remove) the /proc file(s).
  */
-
 static void scull_create_proc(void)
 {
 	struct proc_dir_entry *entry;
@@ -223,38 +196,62 @@ static void scull_remove_proc(void)
 	remove_proc_entry("scullseq", NULL);
 }
 
-
 #endif /* SCULL_DEBUG */
 
 
 
+/*
+ * Empty out the scull device; must be called with the device
+ * semaphore held.
+ */
+int scull_trim(struct scull_dev *dev)
+{
+	struct scull_qset *next, *dptr;
+	int qset = dev->qset;   /* "dev" is not-null */
+	int i;
 
+	for (dptr = dev->data; dptr; dptr = next) { /* all the list items */
+		if (dptr->data) {
+			for (i = 0; i < qset; i++)
+				kfree(dptr->data[i]);
+			kfree(dptr->data);
+			dptr->data = NULL;
+		}
+		next = dptr->next;
+		kfree(dptr);
+	}
+	dev->size = 0;
+	dev->quantum = scull_quantum;
+	dev->qset = scull_qset;
+	dev->data = NULL;
+	return 0;
+}
 
 /*
  * Open and close
  */
-
 int scull_open(struct inode *inode, struct file *filp)
 {
-	struct scull_dev *dev; /* device information */
+	struct scull_dev *dev;	/* device information */
 
 	dev = container_of(inode->i_cdev, struct scull_dev, cdev);
 	filp->private_data = dev; /* for other methods */
 
 	/* now trim to 0 the length of the device if open was write-only */
-	if ( (filp->f_flags & O_ACCMODE) == O_WRONLY) {
+	if ((filp->f_flags & O_ACCMODE) == O_WRONLY) {
 		if (down_interruptible(&dev->sem))
 			return -ERESTARTSYS;
-		scull_trim(dev); /* ignore errors */
+		scull_trim(dev);	/* ignore errors */
 		up(&dev->sem);
 	}
-	return 0;          /* success */
+	return 0;	/* success */
 }
 
 int scull_release(struct inode *inode, struct file *filp)
 {
 	return 0;
 }
+
 /*
  * Follow the list
  */
@@ -287,14 +284,13 @@ struct scull_qset *scull_follow(struct scull_dev *dev, int n)
 /*
  * Data management: read and write
  */
-
 ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
                 loff_t *f_pos)
 {
 	struct scull_dev *dev = filp->private_data; 
 	struct scull_qset *dptr;	/* the first listitem */
 	int quantum = dev->quantum, qset = dev->qset;
-	int itemsize = quantum * qset; /* how many bytes in the listitem */
+	int itemsize = quantum * qset;	/* how many bytes in the listitem */
 	int item, s_pos, q_pos, rest;
 	ssize_t retval = 0;
 
@@ -327,7 +323,7 @@ ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
 	*f_pos += count;
 	retval = count;
 
-  out:
+out:
 	up(&dev->sem);
 	return retval;
 }
@@ -388,7 +384,6 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
 /*
  * The ioctl() implementation
  */
-
 int scull_ioctl(struct inode *inode, struct file *filp,
                  unsigned int cmd, unsigned long arg)
 {
@@ -513,12 +508,9 @@ int scull_ioctl(struct inode *inode, struct file *filp,
 
 }
 
-
-
 /*
  * The "extended" operations -- only seek
  */
-
 loff_t scull_llseek(struct file *filp, loff_t off, int whence)
 {
 	struct scull_dev *dev = filp->private_data;
@@ -545,8 +537,6 @@ loff_t scull_llseek(struct file *filp, loff_t off, int whence)
 	return newpos;
 }
 
-
-
 struct file_operations scull_fops = {
 	.owner =    THIS_MODULE,
 	.llseek =   scull_llseek,
@@ -556,6 +546,8 @@ struct file_operations scull_fops = {
 	.open =     scull_open,
 	.release =  scull_release,
 };
+
+
 
 /*
  * Finally, the module stuff
@@ -590,9 +582,7 @@ void scull_cleanup_module(void)
 	/* and call the cleanup functions for friend devices */
 	scull_p_cleanup();
 	scull_access_cleanup();
-
 }
-
 
 /*
  * Set up the char_dev structure for this device.
@@ -610,16 +600,18 @@ static void scull_setup_cdev(struct scull_dev *dev, int index)
 		printk(KERN_NOTICE "Error %d adding scull%d", err, index);
 }
 
-
+/*
+ *
+ */
 int scull_init_module(void)
 {
 	int result, i;
 	dev_t dev = 0;
 
-/*
- * Get a range of minor numbers to work with, asking for a dynamic
- * major unless directed otherwise at load time.
- */
+	/*
+	 * Get a range of minor numbers to work with, asking for a dynamic
+	 * major unless directed otherwise at load time.
+	 */
 	if (scull_major) {
 		dev = MKDEV(scull_major, scull_minor);
 		result = register_chrdev_region(dev, scull_nr_devs, "scull");
@@ -667,6 +659,8 @@ int scull_init_module(void)
 	scull_cleanup_module();
 	return result;
 }
+
+
 
 module_init(scull_init_module);
 module_exit(scull_cleanup_module);

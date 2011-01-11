@@ -23,7 +23,6 @@
 /*
  * Macros to help debugging
  */
-
 #undef PDEBUG             /* undef it, just in case */
 #ifdef SCULL_DEBUG
 #  ifdef __KERNEL__
@@ -112,17 +111,10 @@ extern int scull_qset;
 extern int scull_p_buffer;	/* pipe.c */
 
 
+
 /*
- * Prototypes for shared functions
+ * Prototypes for file operation functions
  */
-
-int     scull_p_init(dev_t dev);
-void    scull_p_cleanup(void);
-int     scull_access_init(dev_t dev);
-void    scull_access_cleanup(void);
-
-int     scull_trim(struct scull_dev *dev);
-
 ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
                    loff_t *f_pos);
 ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
@@ -130,6 +122,20 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
 loff_t  scull_llseek(struct file *filp, loff_t off, int whence);
 int     scull_ioctl(struct inode *inode, struct file *filp,
                     unsigned int cmd, unsigned long arg);
+
+/*
+ * Prototypes for utility functions
+ */
+int     scull_trim(struct scull_dev *dev);
+
+/*
+ * Prototypes for device init/clean functions
+ */
+int     scull_p_init(dev_t dev);
+void    scull_p_cleanup(void);
+int     scull_access_init(dev_t dev);
+void    scull_access_cleanup(void);
+
 
 
 /*
