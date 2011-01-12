@@ -237,6 +237,8 @@ int scull_open(struct inode *inode, struct file *filp)
 	dev = container_of(inode->i_cdev, struct scull_dev, cdev);
 	filp->private_data = dev; /* for other methods */
 
+	printk("cdev addr = %d\n", (int)(&(dev->cdev)));
+
 	/* now trim to 0 the length of the device if open was write-only */
 	if ((filp->f_flags & O_ACCMODE) == O_WRONLY) {
 		if (down_interruptible(&dev->sem))
@@ -252,15 +254,20 @@ int scull_release(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-/*
- * Follow the list
+/**
+ * Follow the list to find nth qset, and allocate memory to list if dev has not
+ * been allocated.
+ *
+ * @param n - current listitem where f_pos pointed.
+ *
+ * @return pointer which points to nth qset
  */
-struct scull_qset *scull_follow(struct scull_dev *dev, int n)
+struct scull_qset* scull_follow(struct scull_dev *dev, int n)
 {
 	struct scull_qset *qs = dev->data;
 
         /* Allocate first qset explicitly if need be */
-	if (! qs) {
+	if (!qs) {
 		qs = dev->data = kmalloc(sizeof(struct scull_qset), GFP_KERNEL);
 		if (qs == NULL)
 			return NULL;  /* Never mind */
@@ -291,7 +298,7 @@ ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
 	struct scull_qset *dptr;	/* the first listitem */
 	int quantum = dev->quantum, qset = dev->qset;
 	int itemsize = quantum * qset;	/* how many bytes in the listitem */
-	int item, s_pos, q_pos, rest;
+	int item, rest, s_pos, q_pos;
 	ssize_t retval = 0;
 
 	if (down_interruptible(&dev->sem))
@@ -304,7 +311,8 @@ ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
 	/* find listitem, qset index, and offset in the quantum */
 	item = (long)*f_pos / itemsize;
 	rest = (long)*f_pos % itemsize;
-	s_pos = rest / quantum; q_pos = rest % quantum;
+	s_pos = rest / quantum;
+	q_pos = rest % quantum;
 
 	/* follow the list up to the right position (defined elsewhere) */
 	dptr = scull_follow(dev, item);
@@ -344,7 +352,8 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
 	/* find listitem, qset index and offset in the quantum */
 	item = (long)*f_pos / itemsize;
 	rest = (long)*f_pos % itemsize;
-	s_pos = rest / quantum; q_pos = rest % quantum;
+	s_pos = rest / quantum;
+	q_pos = rest % quantum;
 
 	/* follow the list up to the right position */
 	dptr = scull_follow(dev, item);
@@ -361,6 +370,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
 		if (!dptr->data[s_pos])
 			goto out;
 	}
+
 	/* write only up to the end of this quantum */
 	if (count > quantum - q_pos)
 		count = quantum - q_pos;
@@ -376,7 +386,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
 	if (dev->size < *f_pos)
 		dev->size = *f_pos;
 
-  out:
+out:
 	up(&dev->sem);
 	return retval;
 }
@@ -590,11 +600,11 @@ void scull_cleanup_module(void)
 static void scull_setup_cdev(struct scull_dev *dev, int index)
 {
 	int err, devno = MKDEV(scull_major, scull_minor + index);
-    
+ 
 	cdev_init(&dev->cdev, &scull_fops);
 	dev->cdev.owner = THIS_MODULE;
 	dev->cdev.ops = &scull_fops;
-	err = cdev_add (&dev->cdev, devno, 1);
+	err = cdev_add(&dev->cdev, devno, 1);	// add to kernel
 	/* Fail gracefully if need be */
 	if (err)
 		printk(KERN_NOTICE "Error %d adding scull%d", err, index);
