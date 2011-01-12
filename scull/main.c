@@ -36,22 +36,22 @@
 /*
  * Our parameters which can be set at load time.
  */
-int scull_major =   SCULL_MAJOR;
-int scull_minor =   0;
-int scull_nr_devs = SCULL_NR_DEVS;	/* number of bare scull devices */
-int scull_quantum = SCULL_QUANTUM;
-int scull_qset =    SCULL_QSET;
+int Scull_major =   SCULL_MAJOR;
+int Scull_minor =   0;
+int Scull_nr_devs = SCULL_NR_DEVS;	/* number of bare scull devices */
+int Scull_quantum = SCULL_QUANTUM;
+int Scull_qset =    SCULL_QSET;
 
-module_param(scull_major, int, S_IRUGO);
-module_param(scull_minor, int, S_IRUGO);
-module_param(scull_nr_devs, int, S_IRUGO);
-module_param(scull_quantum, int, S_IRUGO);
-module_param(scull_qset, int, S_IRUGO);
+module_param(Scull_major, int, S_IRUGO);
+module_param(Scull_minor, int, S_IRUGO);
+module_param(Scull_nr_devs, int, S_IRUGO);
+module_param(Scull_quantum, int, S_IRUGO);
+module_param(Scull_qset, int, S_IRUGO);
 
 MODULE_AUTHOR("Alessandro Rubini, Jonathan Corbet");
 MODULE_LICENSE("Dual BSD/GPL");
 
-struct scull_dev *scull_devices;	/* allocated in scull_init_module */
+struct scull_dev *Scull_devices;	/* allocated in scull_init_module */
 
 
 
@@ -66,8 +66,8 @@ int scull_read_procmem(char *buf, char **start, off_t offset,
 	int i, j, len = 0;
 	int limit = count - 80; /* Don't print more than this */
 
-	for (i = 0; i < scull_nr_devs && len <= limit; i++) {
-		struct scull_dev *d = &scull_devices[i];
+	for (i = 0; i < Scull_nr_devs && len <= limit; i++) {
+		struct scull_dev *d = &Scull_devices[i];
 		struct scull_qset *qs = d->data;
 		if (down_interruptible(&d->sem))
 			return -ERESTARTSYS;
@@ -84,7 +84,7 @@ int scull_read_procmem(char *buf, char **start, off_t offset,
 								j, qs->data[j]);
 				}
 		}
-		up(&scull_devices[i].sem);
+		up(&Scull_devices[i].sem);
 	}
 	*eof = 1;
 	return len;
@@ -102,17 +102,17 @@ int scull_read_procmem(char *buf, char **start, off_t offset,
  */
 static void *scull_seq_start(struct seq_file *s, loff_t *pos)
 {
-	if (*pos >= scull_nr_devs)
+	if (*pos >= Scull_nr_devs)
 		return NULL;   /* No more to read */
-	return scull_devices + *pos;
+	return Scull_devices + *pos;
 }
 
 static void *scull_seq_next(struct seq_file *s, void *v, loff_t *pos)
 {
 	(*pos)++;
-	if (*pos >= scull_nr_devs)
+	if (*pos >= Scull_nr_devs)
 		return NULL;
-	return scull_devices + *pos;
+	return Scull_devices + *pos;
 }
 
 static void scull_seq_stop(struct seq_file *s, void *v)
@@ -129,7 +129,7 @@ static int scull_seq_show(struct seq_file *s, void *v)
 	if (down_interruptible(&dev->sem))
 		return -ERESTARTSYS;
 	seq_printf(s, "\nDevice %i: qset %i, q %i, sz %li\n",
-			(int) (dev - scull_devices), dev->qset,
+			(int) (dev - Scull_devices), dev->qset,
 			dev->quantum, dev->size);
 	for (d = dev->data; d; d = d->next) { /* scan the list */
 		seq_printf(s, "  item at %p, qset at %p\n", d, d->data);
@@ -147,7 +147,7 @@ static int scull_seq_show(struct seq_file *s, void *v)
 /*
  * Tie the sequence operators up.
  */
-static struct seq_operations scull_seq_ops = {
+static struct seq_operations Scull_seq_ops = {
 	.start = scull_seq_start,
 	.next  = scull_seq_next,
 	.stop  = scull_seq_stop,
@@ -160,13 +160,13 @@ static struct seq_operations scull_seq_ops = {
  */
 static int scull_proc_open(struct inode *inode, struct file *file)
 {
-	return seq_open(file, &scull_seq_ops);
+	return seq_open(file, &Scull_seq_ops);
 }
 
 /*
  * Create a set of file operations for our proc file.
  */
-static struct file_operations scull_proc_ops = {
+static struct file_operations Scull_proc_ops = {
 	.owner   = THIS_MODULE,
 	.open    = scull_proc_open,
 	.read    = seq_read,
@@ -186,7 +186,7 @@ static void scull_create_proc(void)
 			NULL /* client data */);
 	entry = create_proc_entry("scullseq", 0, NULL);
 	if (entry)
-		entry->proc_fops = &scull_proc_ops;
+		entry->proc_fops = &Scull_proc_ops;
 }
 
 static void scull_remove_proc(void)
@@ -221,8 +221,8 @@ int scull_trim(struct scull_dev *dev)
 		kfree(dptr);
 	}
 	dev->size = 0;
-	dev->quantum = scull_quantum;
-	dev->qset = scull_qset;
+	dev->quantum = Scull_quantum;
+	dev->qset = Scull_qset;
 	dev->data = NULL;
 	return 0;
 }
@@ -236,8 +236,6 @@ int scull_open(struct inode *inode, struct file *filp)
 
 	dev = container_of(inode->i_cdev, struct scull_dev, cdev);
 	filp->private_data = dev; /* for other methods */
-
-	printk("cdev addr = %d\n", (int)(&(dev->cdev)));
 
 	/* now trim to 0 the length of the device if open was write-only */
 	if ((filp->f_flags & O_ACCMODE) == O_WRONLY) {
@@ -423,34 +421,34 @@ int scull_ioctl(struct inode *inode, struct file *filp,
 	switch(cmd) {
 
 	  case SCULL_IOCRESET:
-		scull_quantum = SCULL_QUANTUM;
-		scull_qset = SCULL_QSET;
+		Scull_quantum = SCULL_QUANTUM;
+		Scull_qset = SCULL_QSET;
 		break;
         
 	  case SCULL_IOCSQUANTUM: /* Set: arg points to the value */
 		if (! capable (CAP_SYS_ADMIN))
 			return -EPERM;
-		retval = __get_user(scull_quantum, (int __user *)arg);
+		retval = __get_user(Scull_quantum, (int __user *)arg);
 		break;
 
 	  case SCULL_IOCTQUANTUM: /* Tell: arg is the value */
 		if (! capable (CAP_SYS_ADMIN))
 			return -EPERM;
-		scull_quantum = arg;
+		Scull_quantum = arg;
 		break;
 
 	  case SCULL_IOCGQUANTUM: /* Get: arg is pointer to result */
-		retval = __put_user(scull_quantum, (int __user *)arg);
+		retval = __put_user(Scull_quantum, (int __user *)arg);
 		break;
 
 	  case SCULL_IOCQQUANTUM: /* Query: return it (it's positive) */
-		return scull_quantum;
+		return Scull_quantum;
 
 	  case SCULL_IOCXQUANTUM: /* eXchange: use arg as pointer */
 		if (! capable (CAP_SYS_ADMIN))
 			return -EPERM;
-		tmp = scull_quantum;
-		retval = __get_user(scull_quantum, (int __user *)arg);
+		tmp = Scull_quantum;
+		retval = __get_user(Scull_quantum, (int __user *)arg);
 		if (retval == 0)
 			retval = __put_user(tmp, (int __user *)arg);
 		break;
@@ -458,34 +456,34 @@ int scull_ioctl(struct inode *inode, struct file *filp,
 	  case SCULL_IOCHQUANTUM: /* sHift: like Tell + Query */
 		if (! capable (CAP_SYS_ADMIN))
 			return -EPERM;
-		tmp = scull_quantum;
-		scull_quantum = arg;
+		tmp = Scull_quantum;
+		Scull_quantum = arg;
 		return tmp;
         
 	  case SCULL_IOCSQSET:
 		if (! capable (CAP_SYS_ADMIN))
 			return -EPERM;
-		retval = __get_user(scull_qset, (int __user *)arg);
+		retval = __get_user(Scull_qset, (int __user *)arg);
 		break;
 
 	  case SCULL_IOCTQSET:
 		if (! capable (CAP_SYS_ADMIN))
 			return -EPERM;
-		scull_qset = arg;
+		Scull_qset = arg;
 		break;
 
 	  case SCULL_IOCGQSET:
-		retval = __put_user(scull_qset, (int __user *)arg);
+		retval = __put_user(Scull_qset, (int __user *)arg);
 		break;
 
 	  case SCULL_IOCQQSET:
-		return scull_qset;
+		return Scull_qset;
 
 	  case SCULL_IOCXQSET:
 		if (! capable (CAP_SYS_ADMIN))
 			return -EPERM;
-		tmp = scull_qset;
-		retval = __get_user(scull_qset, (int __user *)arg);
+		tmp = Scull_qset;
+		retval = __get_user(Scull_qset, (int __user *)arg);
 		if (retval == 0)
 			retval = put_user(tmp, (int __user *)arg);
 		break;
@@ -493,8 +491,8 @@ int scull_ioctl(struct inode *inode, struct file *filp,
 	  case SCULL_IOCHQSET:
 		if (! capable (CAP_SYS_ADMIN))
 			return -EPERM;
-		tmp = scull_qset;
-		scull_qset = arg;
+		tmp = Scull_qset;
+		Scull_qset = arg;
 		return tmp;
 
         /*
@@ -547,7 +545,7 @@ loff_t scull_llseek(struct file *filp, loff_t off, int whence)
 	return newpos;
 }
 
-struct file_operations scull_fops = {
+struct file_operations Scull_fops = {
 	.owner =    THIS_MODULE,
 	.llseek =   scull_llseek,
 	.read =     scull_read,
@@ -571,15 +569,15 @@ struct file_operations scull_fops = {
 void scull_cleanup_module(void)
 {
 	int i;
-	dev_t devno = MKDEV(scull_major, scull_minor);
+	dev_t devno = MKDEV(Scull_major, Scull_minor);
 
 	/* Get rid of our char dev entries */
-	if (scull_devices) {
-		for (i = 0; i < scull_nr_devs; i++) {
-			scull_trim(scull_devices + i);
-			cdev_del(&scull_devices[i].cdev);
+	if (Scull_devices) {
+		for (i = 0; i < Scull_nr_devs; i++) {
+			scull_trim(Scull_devices + i);
+			cdev_del(&Scull_devices[i].cdev);
 		}
-		kfree(scull_devices);
+		kfree(Scull_devices);
 	}
 
 #ifdef SCULL_DEBUG /* use proc only if debugging */
@@ -587,7 +585,7 @@ void scull_cleanup_module(void)
 #endif
 
 	/* cleanup_module is never called if registering failed */
-	unregister_chrdev_region(devno, scull_nr_devs);
+	unregister_chrdev_region(devno, Scull_nr_devs);
 
 	/* and call the cleanup functions for friend devices */
 	scull_p_cleanup();
@@ -599,11 +597,11 @@ void scull_cleanup_module(void)
  */
 static void scull_setup_cdev(struct scull_dev *dev, int index)
 {
-	int err, devno = MKDEV(scull_major, scull_minor + index);
+	int err, devno = MKDEV(Scull_major, Scull_minor + index);
  
-	cdev_init(&dev->cdev, &scull_fops);
+	cdev_init(&dev->cdev, &Scull_fops);
 	dev->cdev.owner = THIS_MODULE;
-	dev->cdev.ops = &scull_fops;
+	dev->cdev.ops = &Scull_fops;
 	err = cdev_add(&dev->cdev, devno, 1);	// add to kernel
 	/* Fail gracefully if need be */
 	if (err)
@@ -622,16 +620,16 @@ int scull_init_module(void)
 	 * Get a range of minor numbers to work with, asking for a dynamic
 	 * major unless directed otherwise at load time.
 	 */
-	if (scull_major) {
-		dev = MKDEV(scull_major, scull_minor);
-		result = register_chrdev_region(dev, scull_nr_devs, "scull");
+	if (Scull_major) {
+		dev = MKDEV(Scull_major, Scull_minor);
+		result = register_chrdev_region(dev, Scull_nr_devs, "scull");
 	} else {
-		result = alloc_chrdev_region(&dev, scull_minor, scull_nr_devs,
+		result = alloc_chrdev_region(&dev, Scull_minor, Scull_nr_devs,
 				"scull");
-		scull_major = MAJOR(dev);
+		Scull_major = MAJOR(dev);
 	}
 	if (result < 0) {
-		printk(KERN_WARNING "scull: can't get major %d\n", scull_major);
+		printk(KERN_WARNING "scull: can't get major %d\n", Scull_major);
 		return result;
 	}
 
@@ -639,23 +637,23 @@ int scull_init_module(void)
 	 * allocate the devices -- we can't have them static, as the number
 	 * can be specified at load time
 	 */
-	scull_devices = kmalloc(scull_nr_devs * sizeof(struct scull_dev), GFP_KERNEL);
-	if (!scull_devices) {
+	Scull_devices = kmalloc(Scull_nr_devs * sizeof(struct scull_dev), GFP_KERNEL);
+	if (!Scull_devices) {
 		result = -ENOMEM;
 		goto fail;  /* Make this more graceful */
 	}
-	memset(scull_devices, 0, scull_nr_devs * sizeof(struct scull_dev));
+	memset(Scull_devices, 0, Scull_nr_devs * sizeof(struct scull_dev));
 
         /* Initialize each device. */
-	for (i = 0; i < scull_nr_devs; i++) {
-		scull_devices[i].quantum = scull_quantum;
-		scull_devices[i].qset = scull_qset;
-		init_MUTEX(&scull_devices[i].sem);
-		scull_setup_cdev(&scull_devices[i], i);
+	for (i = 0; i < Scull_nr_devs; i++) {
+		Scull_devices[i].quantum = Scull_quantum;
+		Scull_devices[i].qset = Scull_qset;
+		init_MUTEX(&Scull_devices[i].sem);
+		scull_setup_cdev(&Scull_devices[i], i);
 	}
 
         /* At this point call the init function for any friend device */
-	dev = MKDEV(scull_major, scull_minor + scull_nr_devs);
+	dev = MKDEV(Scull_major, Scull_minor + Scull_nr_devs);
 	dev += scull_p_init(dev);
 	dev += scull_access_init(dev);
 
